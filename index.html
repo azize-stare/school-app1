@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ff7a00">
+
+  <title>تطبيق مدرسة الفرابي</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(to bottom, #0a1931, #ff7f50);
+      color: white;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: 0.3s;
+    }
+    .dark-mode {
+      background: linear-gradient(to bottom, #1a1a1a, #333);
+      color: #ddd;
+    }
+    .navbar {
+      display: flex;
+      gap: 20px;
+      background: rgba(255,255,255,0.1);
+      padding: 10px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      margin-bottom: 20px;
+      width: 100%;
+      max-width: 800px;
+      align-items: center;
+    }
+    .navbar a {
+      color: white;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .navbar button {
+      margin-left: auto;
+      padding: 5px 15px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #4caf50;
+      color: white;
+      transition: 0.3s;
+    }
+    .navbar button:hover {
+      background: #45a049;
+    }
+    .header {
+      background: rgba(255,255,255,0.1);
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    .header h1 {
+      font-size: 28px;
+      margin: 0;
+    }
+    .content, .container, .user-select, .role-select {
+      background: rgba(255,255,255,0.2);
+      border-radius: 15px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      padding: 20px;
+      margin-top: 20px;
+      max-width: 350px;
+      width: 100%;
+    }
+    .btn, .toggle-btn, .back-btn {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .btn { background: #ff7f50; color: white; }
+    .btn:hover { background: #ff5722; }
+    .toggle-btn { background: #ff7eb3; color: white; }
+    .toggle-btn:hover { background: #ff4f98; }
+    .back-btn { background: #4caf50; color: white; }
+    .back-btn:hover { background: #45a049; }
+
+    .week, .next-week {
+      font-size: 24px;
+      background: white;
+      color: #007bff;
+      border-radius: 8px;
+      padding: 10px;
+      margin: 5px 0;
+    }
+    input, select {
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      margin: 10px 0;
+      width: 100%;
+    }
+    img#schedulePreview {
+      max-width: 100%;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      margin-top: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- شريط التنقل مع زر إعادة الدخول دائمًا -->
+  <div class="navbar" id="navbar">
+    <a href="#">الرئيسية</a>
+    <a href="#">حول المدرسة</a>
+    <a href="#">التواصل</a>
+    <button onclick="logout()">إعادة الدخول</button>
+  </div>
+
+  <!-- الهيدر: سيتم تحديثه باسم المدرسة -->
+  <div class="header" id="header">
+    <h1 id="schoolTitle">مدرسة الفرابي الخاصة</h1>
+  </div>
+
+  <!-- صفحة تسجيل البيانات: الاسم، المدرسة، القسم -->
+  <div class="user-select" id="userSelect">
+    <h2>أدخل بياناتك للمتابعة:</h2>
+    <input type="text" id="usernameInput" placeholder="الاسم">
+    <input type="text" id="schoolInput" placeholder="اسم المدرسة">
+    <input type="text" id="classInput" placeholder="القسم">
+    <button class="btn" onclick="saveUsername()">التالي</button>
+  </div>
+
+  <!-- اختيار الدور -->
+  <div class="role-select" id="roleSelect" style="display:none;">
+    <h2>اختر نوع المستخدم:</h2>
+    <select id="userRole">
+      <option value="طالب">تلميذ</option>
+      <option value="ولي">ولي أمر</option>
+    </select>
+    <button class="btn" onclick="startNow()">ابدأ الآن</button>
+  </div>
+
+  <!-- الصفحة الرئيسية -->
+  <div class="content" id="content" style="display:none;">
+    <p id="welcomeMsg"></p>
+    <button class="btn" onclick="showCalendar()">عرض التقويم</button>
+    <button class="toggle-btn" onclick="toggleDarkMode()">وضع ليلي / نهاري</button>
+  </div>
+
+  <!-- تقويم الأسابيع وجدول الأوقات -->
+  <div class="container" id="weekCalendar" style="display:none;">
+    <h2>الأسبوع الحالي:</h2>
+    <p class="week" id="weekType"></p>
+    <h2>الأسبوع القادم:</h2>
+    <p class="next-week" id="nextWeekType"></p>
+    <p id="countdown"></p>
+
+    <h2>رفع جدول الأوقات:</h2>
+    <input type="file" id="scheduleInput" accept="image/*">
+    <img id="schedulePreview">
+
+    <button class="toggle-btn" onclick="toggleWeek()">تغيير الأسبوع</button>
+    <button class="back-btn" onclick="goBack()">العودة</button>
+  </div>
+
+  <script>
+    // تحميل البيانات عند فتح الصفحة
+    window.onload = function () {
+      const week = getWeekType();
+      showNotification(week);
+
+      const name = localStorage.getItem("username");
+      const role = localStorage.getItem("role");
+      if (name && role) {
+        showMainPage(name, role);
+      }
+
+      if ("Notification" in window && Notification.permission !== "granted") {
+        Notification.requestPermission();
+      }
+
+      const savedSchedule = localStorage.getItem("scheduleImage");
+      if (savedSchedule) {
+        schedulePreview.src = savedSchedule;
+        schedulePreview.style.display = "block";
+      }
+    }
+
+    // إشعار الترحيب
+    function showNotification(week) {
+      if (Notification.permission === "granted") {
+        new Notification("مدرسة الفرابي", {
+          body: "مرحبًا بك! اليوم هو " + week,
+          icon: "IMG_20250130_194929.jpg"
+        });
+      }
+    }
+
+    // حفظ البيانات من صفحة التسجيل
+    function saveUsername() {
+      const username = document.getElementById("usernameInput").value.trim();
+      const school = document.getElementById("schoolInput").value.trim();
+      const className = document.getElementById("classInput").value.trim();
+
+      if (username && school && className) {
+        localStorage.setItem("username", username);
+        localStorage.setItem("school", school);
+        localStorage.setItem("class", className);
+        document.getElementById("userSelect").style.display = "none";
+        document.getElementById("roleSelect").style.display = "block";
+      } else {
+        alert("الرجاء إدخال جميع البيانات!");
+      }
+    }
+
+    function startNow() {
+      const role = document.getElementById("userRole").value;
+      localStorage.setItem("role", role);
+      showMainPage(localStorage.getItem("username"), role);
+    }
+
+    function showMainPage(name, role) {
+      document.getElementById("userSelect").style.display = "none";
+      document.getElementById("roleSelect").style.display = "none";
+      document.getElementById("content").style.display = "block";
+      document.getElementById("weekCalendar").style.display = "none";
+
+      const school = localStorage.getItem("school");
+      const className = localStorage.getItem("class");
+
+      // تغيير نص الهيدر إلى اسم المدرسة
+      document.getElementById("schoolTitle").textContent = school;
+
+      // رسالة الترحيب
+      document.getElementById("welcomeMsg").textContent =
+        `مرحبًا بك يا ${name} (${role}) - ${className}`;
+    }
+
+    // دوال الأسبوع
+    function getWeekType(override = null) {
+      const startDate = new Date("2024-01-01");
+      const today = new Date();
+      const daysPassed = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+      const weekNum = Math.floor(daysPassed / 7);
+      let currentWeek = (weekNum % 2 === 0) ? "أسبوع أ" : "أسبوع ب";
+
+      if (override) {
+        localStorage.setItem("customWeek", override);
+        return override;
+      }
+      const saved = localStorage.getItem("customWeek");
+      return saved ? saved : currentWeek;
+    }
+
+    function updateWeekDisplay() {
+      const currentWeek = getWeekType();
+      const nextWeek = (currentWeek === "أسبوع أ") ? "أسبوع ب" : "أسبوع أ";
+
+      document.getElementById("weekType").textContent = currentWeek;
+      document.getElementById("nextWeekType").textContent = nextWeek;
+
+      const now = new Date();
+      let nextMonday = new Date();
+      nextMonday.setDate(now.getDate() + ((8 - now.getDay()) % 7 || 7));
+      nextMonday.setHours(0, 0, 0, 0);
+
+      let seconds = Math.floor((nextMonday - now) / 1000);
+      let days = Math.floor(seconds / (3600 * 24));
+      seconds %= 3600 * 24;
+      let hours = Math.floor(seconds / 3600);
+      seconds %= 3600;
+      let minutes = Math.floor(seconds / 60);
+
+      document.getElementById("countdown").textContent =
+        `يتبقى ${days} يوم و ${hours} ساعة و ${minutes} دقيقة حتى ${nextWeek}`;
+    }
+
+    function toggleWeek() {
+      const current = getWeekType();
+      const newWeek = (current === "أسبوع أ") ? "أسبوع ب" : "أسبوع أ";
+      localStorage.setItem("customWeek", newWeek);
+      updateWeekDisplay();
+    }
+
+    function showCalendar() {
+      document.getElementById("content").style.display = "none";
+      document.getElementById("weekCalendar").style.display = "block";
+      updateWeekDisplay();
+    }
+
+    function goBack() {
+      document.getElementById("weekCalendar").style.display = "none";
+      document.getElementById("content").style.display = "block";
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark-mode");
+    }
+
+    function logout() {
+      if (confirm("هل تريد تسجيل الخروج؟")) {
+        localStorage.removeItem("username");
+        localStorage.removeItem("school");
+        localStorage.removeItem("class");
+        localStorage.removeItem("role");
+        location.reload();
+      }
+    }
+
+    // رفع جدول الأوقات
+    const scheduleInput = document.getElementById("scheduleInput");
+    const schedulePreview = document.getElementById("schedulePreview");
+
+    scheduleInput.addEventListener("change", function() {
+      const file = this.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          schedulePreview.src = e.target.result;
+          schedulePreview.style.display = "block";
+          localStorage.setItem("scheduleImage", e.target.result);
+        }
+        reader.readAsDataURL(file);
+      }
+    });
+  </script>
+</body>
+</html>
+
